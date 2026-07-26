@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# PyInstaller ciktilari (exe 36 MB, depoya girmemeli)
+build/
+dist/
+
+# Yerel veritabani ve yedekleri
+*.db.yedek

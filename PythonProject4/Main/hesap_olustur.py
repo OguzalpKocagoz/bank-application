@@ -1,190 +1,132 @@
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, 
-                             QLineEdit, QPushButton, QMessageBox, QFrame, 
-                             QHBoxLayout, QGraphicsDropShadowEffect)
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel,
+                             QLineEdit, QPushButton, QFrame, QHBoxLayout,
+                             QGraphicsDropShadowEffect, QScrollArea)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
-import re
+import bildirim
 import database
+import stil
+
 
 class HesapOlusturFormu(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("✨ Yeni Hesap Oluştur")
-        self.setGeometry(100, 100, 800, 600)
-        self.setMinimumSize(600, 400)
-        self.setStyleSheet("""
-            QMainWindow {
-                background: #f8f9fa;
-            }
-            QLabel {
-                font-size: 14px;
-                margin: 5px;
-            }
-            QPushButton {
-                font-size: 14px;
-                padding: 10px;
-                min-height: 35px;
-                margin: 5px;
-            }
-            QLineEdit {
-                font-size: 14px;
-                padding: 10px;
-                min-height: 35px;
-                margin: 5px;
-            }
-            QFrame {
-                margin: 5px;
-            }
-        """)
-        
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
+        self.setMinimumSize(540, 640)
+        self.resize(560, 780)
+        self.setStyleSheet(stil.pencere())
+
+        # Pencere kucultuldugunde alanlar sikismasin diye form kaydirilabilir.
+        kaydirma = QScrollArea()
+        kaydirma.setWidgetResizable(True)
+        kaydirma.setFrameShape(QFrame.NoFrame)
+        kaydirma.setStyleSheet(
+            f"QScrollArea, QScrollArea > QWidget > QWidget "
+            f"{{ background: {stil.ARKA_PLAN}; }}")
+        self.setCentralWidget(kaydirma)
+
+        govde = QWidget()
+        kaydirma.setWidget(govde)
+
         layout = QVBoxLayout()
-        layout.setSpacing(10)
-        layout.setContentsMargins(20, 20, 20, 20)
-        central_widget.setLayout(layout)
-        
-        baslik_frame = QFrame()
-        baslik_frame.setStyleSheet("""
-            QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10b981, stop:1 #059669);
-                border-radius: 10px;
-                margin: 10px;
-                padding: 20px;
-            }
-        """)
-        baslik_layout = QVBoxLayout()
-        baslik_layout.setSpacing(10)
-        baslik_layout.setContentsMargins(10, 10, 10, 10)
-        baslik_frame.setLayout(baslik_layout)
-        
-        icon_label = QLabel("✨")
-        icon_label.setStyleSheet("""
-            font-size: 32px;
-            color: white;
-            margin: 5px;
-        """)
-        icon_label.setAlignment(Qt.AlignCenter)
-        baslik_layout.addWidget(icon_label)
-        
+        layout.setContentsMargins(26, 26, 26, 26)
+        layout.setSpacing(18)
+        govde.setLayout(layout)
+
+        layout.addWidget(self._baslik_karti())
+        layout.addWidget(self._form_karti())
+        layout.addStretch()
+
+    def _baslik_karti(self):
+        kart = QFrame()
+        kart.setObjectName("baslikKarti")
+        kart.setStyleSheet(stil.baslik_karti(stil.YESIL))
+        kart.setGraphicsEffect(_golge(32, 65))
+
+        kart_layout = QVBoxLayout()
+        kart_layout.setContentsMargins(26, 26, 26, 26)
+        kart_layout.setSpacing(8)
+        kart.setLayout(kart_layout)
+
+        ikon = QLabel("✨")
+        ikon.setStyleSheet(stil.ikon_yazisi(38))
+        ikon.setAlignment(Qt.AlignCenter)
+        kart_layout.addWidget(ikon)
+
         baslik = QLabel("Yeni Hesap Oluştur")
-        baslik.setStyleSheet("""
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
-            margin: 5px;
-        """)
+        baslik.setStyleSheet(stil.baslik_yazisi(22))
         baslik.setAlignment(Qt.AlignCenter)
-        baslik_layout.addWidget(baslik)
-        
-        layout.addWidget(baslik_frame)
-        
-        form_frame = QFrame()
-        form_frame.setStyleSheet("""
-            QFrame {
-                background: white;
-                border-radius: 10px;
-                margin: 10px;
-                padding: 20px;
-            }
-        """)
+        kart_layout.addWidget(baslik)
+
+        alt = QLabel("Bilgilerinizi girerek hesabınızı oluşturun")
+        alt.setStyleSheet(stil.alt_baslik())
+        alt.setAlignment(Qt.AlignCenter)
+        kart_layout.addWidget(alt)
+
+        return kart
+
+    def _form_karti(self):
+        kart = QFrame()
+        kart.setObjectName("kart")
+        kart.setStyleSheet(stil.beyaz_kart())
+        kart.setGraphicsEffect(_golge(26, 35))
+
         form_layout = QVBoxLayout()
-        form_layout.setSpacing(15)
-        form_layout.setContentsMargins(20, 20, 20, 20)
-        form_frame.setLayout(form_layout)
-        
+        form_layout.setContentsMargins(26, 26, 26, 26)
+        form_layout.setSpacing(7)
+        kart.setLayout(form_layout)
+
         self.form_alanlari = {}
-        self.form_alani_ekle(form_layout, "👤 TC Kimlik No", "tc_entry", "11 haneli TC kimlik numaranız")
-        self.form_alani_ekle(form_layout, "📝 Ad", "ad_entry", "Adınız")
-        self.form_alani_ekle(form_layout, "📝 Soyad", "soyad_entry", "Soyadınız")
-        self.form_alani_ekle(form_layout, "📱 Telefon", "telefon_entry", "10 haneli telefon numaranız")
-        self.form_alani_ekle(form_layout, "🔒 Şifre", "sifre_entry", "En az 6 karakterli şifreniz", True)
-        self.form_alani_ekle(form_layout, "🔒 Şifre Tekrar", "sifre_tekrar_entry", "Şifrenizi tekrar girin", True)
-        
-        buttons_layout = QHBoxLayout()
-        buttons_layout.setSpacing(20)
-        buttons_layout.setContentsMargins(20, 20, 20, 20)
-        
-        self.kayit_btn = QPushButton("✨ Hesap Oluştur")
-        self.kayit_btn.setFixedWidth(200)
-        self.kayit_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10b981, stop:1 #059669);
-                color: white;
-                padding: 10px;
-                border: none;
-                border-radius: 5px;
-                font-size: 14px;
-                font-weight: bold;
-                min-height: 35px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #059669, stop:1 #10b981);
-            }
-            QPushButton:pressed {
-                background: #059669;
-            }
-        """)
-        self.kayit_btn.clicked.connect(self.hesap_olustur)
-        buttons_layout.addWidget(self.kayit_btn)
-        
-        self.geri_btn = QPushButton("🔙 Giriş Sayfasına Dön")
-        self.geri_btn.setFixedWidth(200)
-        self.geri_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4361ee, stop:1 #3a0ca3);
-                color: white;
-                padding: 10px;
-                border: none;
-                border-radius: 5px;
-                font-size: 14px;
-                font-weight: bold;
-                min-height: 35px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3a0ca3, stop:1 #4361ee);
-            }
-            QPushButton:pressed {
-                background: #3a0ca3;
-            }
-        """)
+        alanlar = [
+            ("TC KİMLİK NO", "tc_entry", "11 haneli TC kimlik numaranız", False),
+            ("AD", "ad_entry", "Adınız", False),
+            ("SOYAD", "soyad_entry", "Soyadınız", False),
+            ("TELEFON", "telefon_entry", "10 haneli telefon numaranız", False),
+            ("ŞİFRE", "sifre_entry", "En az 6 karakterli şifreniz", True),
+            ("ŞİFRE TEKRAR", "sifre_tekrar_entry", "Şifrenizi tekrar girin", True),
+        ]
+        for etiket, ad, ipucu, sifre_mi in alanlar:
+            self.form_alani_ekle(form_layout, etiket, ad, ipucu, sifre_mi)
+
+        form_layout.addSpacing(16)
+
+        buton_satiri = QHBoxLayout()
+        buton_satiri.setSpacing(10)
+
+        self.geri_btn = QPushButton("Geri Dön")
+        self.geri_btn.setStyleSheet(stil.ikincil_buton())
+        self.geri_btn.setMinimumHeight(44)
         self.geri_btn.clicked.connect(self.giris_sayfasina_don)
-        buttons_layout.addWidget(self.geri_btn)
-        
-        form_layout.addLayout(buttons_layout)
-        layout.addWidget(form_frame)
-    
-    def form_alani_ekle(self, layout, etiket_text, entry_name, placeholder_text="", sifre_mi=False):
+        buton_satiri.addWidget(self.geri_btn)
+
+        self.kayit_btn = QPushButton("Hesap Oluştur")
+        self.kayit_btn.setStyleSheet(stil.buton(stil.YESIL))
+        self.kayit_btn.setMinimumHeight(44)
+        self.kayit_btn.clicked.connect(self.hesap_olustur)
+        buton_satiri.addWidget(self.kayit_btn, 1)
+
+        form_layout.addLayout(buton_satiri)
+        return kart
+
+    def form_alani_ekle(self, layout, etiket_text, entry_name,
+                        placeholder_text="", sifre_mi=False):
+        if layout.count():
+            layout.addSpacing(10)
+
         etiket = QLabel(etiket_text)
-        etiket.setStyleSheet("""
-            color: #495057;
-            font-size: 14px;
-            font-weight: bold;
-            margin: 5px;
-        """)
+        etiket.setStyleSheet(stil.alan_etiketi())
         layout.addWidget(etiket)
-        
+
         entry = QLineEdit()
         if sifre_mi:
             entry.setEchoMode(QLineEdit.Password)
-        entry.setStyleSheet("""
-            QLineEdit {
-                padding: 10px;
-                border: 1px solid #e9ecef;
-                border-radius: 5px;
-                font-size: 14px;
-                min-height: 35px;
-                margin: 5px;
-            }
-            QLineEdit:focus {
-                border: 1px solid #10b981;
-            }
-        """)
+        entry.setStyleSheet(stil.giris_kutusu(stil.YESIL))
         entry.setPlaceholderText(placeholder_text)
-        entry.setFixedWidth(300)
-        layout.addWidget(entry, alignment=Qt.AlignCenter)
+        entry.returnPressed.connect(self.hesap_olustur)
+        layout.addWidget(entry)
+
         self.form_alanlari[entry_name] = entry
-    
+
     def hesap_olustur(self):
         # Form verilerini al
         tc_no = self.form_alanlari["tc_entry"].text().strip()
@@ -193,41 +135,53 @@ class HesapOlusturFormu(QMainWindow):
         telefon = self.form_alanlari["telefon_entry"].text().strip()
         sifre = self.form_alanlari["sifre_entry"].text().strip()
         sifre_tekrar = self.form_alanlari["sifre_tekrar_entry"].text().strip()
-        
+
         # Boş alan kontrolü
         if not all([tc_no, ad, soyad, telefon, sifre, sifre_tekrar]):
-            QMessageBox.warning(self, "Hata", "Lütfen tüm alanları doldurun!")
+            bildirim.uyari(self, "Lütfen tüm alanları doldurun.")
             return
-        
+
         # TC No kontrolü
         if not tc_no.isdigit() or len(tc_no) != 11:
-            QMessageBox.warning(self, "Hata", "TC Kimlik No 11 haneli sayı olmalıdır!")
+            bildirim.uyari(self, "TC Kimlik No 11 haneli bir sayı olmalıdır.")
             return
-        
+
         # Telefon format kontrolü
         telefon = telefon.replace(" ", "")
         if not telefon.isdigit() or len(telefon) != 10:
-            QMessageBox.warning(self, "Hata", "Telefon numarası 10 haneli olmalıdır!")
+            bildirim.uyari(self, "Telefon numarası 10 haneli olmalıdır.")
             return
-        
+
         # Şifre kontrolü
         if sifre != sifre_tekrar:
-            QMessageBox.warning(self, "Hata", "Şifreler eşleşmiyor!")
+            bildirim.uyari(self, "Girdiğiniz iki şifre birbiriyle eşleşmiyor.")
             return
-        
+
         if len(sifre) < 6:
-            QMessageBox.warning(self, "Hata", "Şifre en az 6 karakter olmalıdır!")
+            bildirim.uyari(self, "Şifreniz en az 6 karakter olmalıdır.")
             return
-        
+
         # Veritabanına kaydet
         if database.kayit_ekle(tc_no, ad, soyad, telefon, sifre):
-            QMessageBox.information(self, "Başarılı", "Hesabınız başarıyla oluşturuldu!")
+            bildirim.basarili(
+                self,
+                f"Sayın {ad} {soyad}, hesabınız oluşturuldu.\n"
+                f"TC kimlik numaranız ve şifrenizle giriş yapabilirsiniz.",
+                baslik="Hesabınız Hazır")
             self.giris_sayfasina_don()
         else:
-            QMessageBox.warning(self, "Hata", "Bu TC No zaten kayıtlı!")
-    
+            bildirim.hata(self, "Bu TC No ile kayıtlı bir hesap zaten var.")
+
     def giris_sayfasina_don(self):
         from kullanici_giris import KullaniciGiris
-        self.close()
         self.giris = KullaniciGiris()
         self.giris.show()
+        self.close()
+
+
+def _golge(bulanik, saydamlik):
+    efekt = QGraphicsDropShadowEffect()
+    efekt.setBlurRadius(bulanik)
+    efekt.setColor(QColor(0, 0, 0, saydamlik))
+    efekt.setOffset(0, 6)
+    return efekt

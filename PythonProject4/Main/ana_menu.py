@@ -1,254 +1,202 @@
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, 
-                             QLineEdit, QMessageBox, QTabWidget, QTreeWidget, QTreeWidgetItem,
-                             QHBoxLayout, QFrame, QSizePolicy, QGraphicsDropShadowEffect)
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel,
+                             QHBoxLayout, QFrame, QGraphicsDropShadowEffect)
+from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QColor
-import sqlite3
-from datetime import datetime
+import database
+import stil
 from para_yatir import ParaYatirFormu
 from para_cek import ParaCekFormu
 from para_transfer import ParaTransferFormu
 from islem_gecmisi import IslemGecmisiFormu
+
 
 class AnaMenu(QMainWindow):
     def __init__(self, kullanici_bilgileri):
         super().__init__()
         self.kullanici_bilgileri = kullanici_bilgileri
         self.setWindowTitle("🏦 Banka Uygulaması")
-        self.setGeometry(100, 100, 800, 600)
-        self.setMinimumSize(600, 400)
-        self.setStyleSheet("""
-            QMainWindow {
-                background: #f8f9fa;
-            }
-            QLabel {
-                font-size: 14px;
-                margin: 5px;
-            }
-            QPushButton {
-                font-size: 14px;
-                padding: 10px;
-                min-height: 35px;
-                margin: 5px;
-            }
-            QLineEdit {
-                font-size: 14px;
-                padding: 10px;
-                min-height: 35px;
-                margin: 3px;
-            }
-            QTabWidget::pane {
-                border: none;
-                background: white;
-                border-radius: 10px;
-            }
-            QTabBar::tab {
-                background: #f8f9fa;
-                border: none;
-                padding: 10px 20px;
-                margin: 5px;
-                border-radius: 5px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            QTabBar::tab:selected {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4361ee, stop:1 #3a0ca3);
-                color: white;
-            }
-            QTabBar::tab:hover:!selected {
-                background: #e9ecef;
-            }
-            QTreeWidget {
-                font-size: 14px;
-                margin: 3px;
-            }
-            QTreeWidget::item {
-                height: 35px;
-                margin: 3px;
-            }
-            QTreeWidget::item:selected {
-                background: #e7f5ff;
-                color: #1a73e8;
-                border-radius: 5px;
-            }
-            QTreeWidget::item:hover {
-                background: #f8f9fa;
-                border-radius: 5px;
-            }
-            QHeaderView::section {
-                background-color: #f8f9fa;
-                padding: 10px;
-                border: none;
-                font-weight: bold;
-                font-size: 14px;
-                color: #495057;
-            }
-            QTreeWidget::item:alternate {
-                background-color: #f8f9fa;
-            }
-        """)
-        
+        self.setMinimumSize(600, 560)
+        self.resize(680, 620)
+        self.setStyleSheet(stil.pencere())
+
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout()
-        layout.setSpacing(10)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(26, 26, 26, 26)
+        layout.setSpacing(18)
         central_widget.setLayout(layout)
-        
-        baslik_frame = QFrame()
-        baslik_frame.setStyleSheet("""
-            QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4361ee, stop:1 #3a0ca3);
-                border-radius: 10px;
-                margin: 5px;
-                padding: 10px;
-            }
+
+        layout.addWidget(self._bakiye_karti())
+        layout.addWidget(self._islemler_karti())
+        layout.addStretch()
+
+    def _bakiye_karti(self):
+        """Ust kart: kullanici adi ve guncel bakiye."""
+        kart = QFrame()
+        kart.setObjectName("baslikKarti")
+        kart.setStyleSheet(stil.baslik_karti(stil.INDIGO))
+        kart.setGraphicsEffect(_golge(34, 70))
+
+        kart_layout = QVBoxLayout()
+        kart_layout.setContentsMargins(28, 26, 28, 28)
+        kart_layout.setSpacing(4)
+        kart.setLayout(kart_layout)
+
+        hosgeldin_label = QLabel(
+            f"Hoş geldiniz, {self.kullanici_bilgileri[2]} {self.kullanici_bilgileri[3]}"
+        )
+        hosgeldin_label.setStyleSheet(stil.alt_baslik())
+        kart_layout.addWidget(hosgeldin_label)
+
+        kart_layout.addSpacing(6)
+
+        bakiye_basligi = QLabel("TOPLAM BAKİYE")
+        bakiye_basligi.setStyleSheet(
+            "color: rgba(255,255,255,0.7); font-size: 11px; "
+            "font-weight: 600; letter-spacing: 1px;")
+        kart_layout.addWidget(bakiye_basligi)
+
+        self.bakiye_label = QLabel(f"₺{self.kullanici_bilgileri[5]:,.2f}")
+        self.bakiye_label.setStyleSheet(
+            "color: white; font-size: 34px; font-weight: 600;")
+        kart_layout.addWidget(self.bakiye_label)
+
+        kart_layout.addSpacing(8)
+
+        tc_label = QLabel(f"TC  ·  {self.kullanici_bilgileri[1]}")
+        tc_label.setStyleSheet(
+            "color: rgba(255,255,255,0.7); font-size: 12px; letter-spacing: 0.5px;")
+        kart_layout.addWidget(tc_label)
+
+        return kart
+
+    def _islemler_karti(self):
+        kart = QFrame()
+        kart.setObjectName("kart")
+        kart.setStyleSheet(stil.beyaz_kart())
+        kart.setGraphicsEffect(_golge(26, 35))
+
+        kart_layout = QVBoxLayout()
+        kart_layout.setContentsMargins(24, 22, 24, 24)
+        kart_layout.setSpacing(12)
+        kart.setLayout(kart_layout)
+
+        baslik = QLabel("Para İşlemleri")
+        baslik.setStyleSheet(stil.bolum_basligi(16))
+        kart_layout.addWidget(baslik)
+
+        butonlar = [
+            ("💰", "Para Yatır", "Hesabınıza para ekleyin",
+             stil.YESIL, self.para_yatir_penceresi_ac),
+            ("💸", "Para Transfer", "Başka bir hesaba gönderin",
+             stil.TEAL, self.para_transfer_penceresi_ac),
+            ("🏧", "Para Çek", "Hesabınızdan para çekin",
+             stil.TURUNCU, self.para_cek_penceresi_ac),
+            ("📊", "İşlem Geçmişi", "Geçmiş hareketlerinizi görün",
+             stil.INDIGO, self.islem_gecmisi_penceresi_ac),
+        ]
+        for ikon, yazi, aciklama, renk, islev in butonlar:
+            kart_layout.addWidget(
+                self._islem_satiri(ikon, yazi, aciklama, renk, islev))
+
+        return kart
+
+    def _islem_satiri(self, ikon, yazi, aciklama, renk, islev):
+        """Ikon + baslik + aciklamadan olusan tiklanabilir satir."""
+        btn = QPushButton()
+        btn.setCursor(Qt.PointingHandCursor)
+        btn.setMinimumHeight(66)
+        btn.clicked.connect(islev)
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background: #fbfbfc;
+                border: 1px solid {stil.KENAR};
+                border-radius: 12px;
+                text-align: left;
+            }}
+            QPushButton:hover {{
+                background: #f5f6f8;
+                border: 1px solid {renk[0]};
+            }}
+            QPushButton:pressed {{
+                background: #eef0f3;
+            }}
         """)
-        baslik_layout = QVBoxLayout()
-        baslik_layout.setSpacing(5)
-        baslik_layout.setContentsMargins(5, 5, 5, 5)
-        baslik_frame.setLayout(baslik_layout)
-        
-        hosgeldin_label = QLabel(f"👋 Hoş Geldiniz, {self.kullanici_bilgileri[2]} {self.kullanici_bilgileri[3]}")
-        hosgeldin_label.setStyleSheet("""
-            color: white;
-            font-size: 20px;
-            font-weight: bold;
-            margin: 5px;
+
+        satir = QHBoxLayout()
+        satir.setContentsMargins(14, 10, 16, 10)
+        satir.setSpacing(14)
+        btn.setLayout(satir)
+
+        ikon_etiketi = QLabel(ikon)
+        ikon_etiketi.setFixedSize(42, 42)
+        ikon_etiketi.setAlignment(Qt.AlignCenter)
+        ikon_etiketi.setStyleSheet(f"""
+            background: {renk[0]};
+            border-radius: 12px;
+            font-size: 19px;
         """)
-        hosgeldin_label.setAlignment(Qt.AlignCenter)
-        
-        bakiye_label = QLabel(f"💰 Bakiye: ₺{self.kullanici_bilgileri[5]:.2f}")
-        bakiye_label.setStyleSheet("""
-            color: white;
-            font-size: 16px;
-            margin: 5px;
-        """)
-        bakiye_label.setAlignment(Qt.AlignCenter)
-        
-        baslik_layout.addWidget(hosgeldin_label)
-        baslik_layout.addWidget(bakiye_label)
-        
-        layout.addWidget(baslik_frame)
-        
-        self.tab_widget = QTabWidget()
-        
-        # Para İşlemleri Sekmesi
-        islemler_tab = QWidget()
-        islemler_layout = QVBoxLayout()
-        islemler_layout.setSpacing(10)
-        islemler_layout.setContentsMargins(10, 10, 10, 10)
-        islemler_tab.setLayout(islemler_layout)
-        
-        yatir_btn = QPushButton("💰 Para Yatır")
-        yatir_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10b981, stop:1 #059669);
-                color: white;
-                padding: 10px;
-                border: none;
-                border-radius: 5px;
-                font-size: 14px;
-                font-weight: bold;
-                min-height: 40px;
-                margin: 5px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #059669, stop:1 #10b981);
-            }
-            QPushButton:pressed {
-                background: #059669;
-            }
-        """)
-        yatir_btn.clicked.connect(self.para_yatir_penceresi_ac)
-        
-        transfer_btn = QPushButton("💸 Para Transfer")
-        transfer_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #5bc0de, stop:1 #46b8da);
-                color: white;
-                padding: 10px;
-                border: none;
-                border-radius: 5px;
-                font-size: 14px;
-                font-weight: bold;
-                min-height: 40px;
-                margin: 5px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #46b8da, stop:1 #5bc0de);
-            }
-            QPushButton:pressed {
-                background: #46b8da;
-            }
-        """)
-        transfer_btn.clicked.connect(self.para_transfer_penceresi_ac)
-        
-        cek_btn = QPushButton("💸 Para Çek")
-        cek_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #f0ad4e, stop:1 #ec971f);
-                color: white;
-                padding: 10px;
-                border: none;
-                border-radius: 5px;
-                font-size: 14px;
-                font-weight: bold;
-                min-height: 40px;
-                margin: 5px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #ec971f, stop:1 #f0ad4e);
-            }
-            QPushButton:pressed {
-                background: #ec971f;
-            }
-        """)
-        cek_btn.clicked.connect(self.para_cek_penceresi_ac)
-        
-        gecmis_btn = QPushButton("📊 İşlem Geçmişi")
-        gecmis_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4361ee, stop:1 #3a0ca3);
-                color: white;
-                padding: 10px;
-                border: none;
-                border-radius: 5px;
-                font-size: 14px;
-                font-weight: bold;
-                min-height: 40px;
-                margin: 5px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3a0ca3, stop:1 #4361ee);
-            }
-            QPushButton:pressed {
-                background: #3a0ca3;
-            }
-        """)
-        gecmis_btn.clicked.connect(self.islem_gecmisi_penceresi_ac)
-        
-        islemler_layout.addWidget(yatir_btn)
-        islemler_layout.addWidget(transfer_btn)
-        islemler_layout.addWidget(cek_btn)
-        islemler_layout.addWidget(gecmis_btn)
-        
-        self.tab_widget.addTab(islemler_tab, "💰 Para İşlemleri")
-        
-        layout.addWidget(self.tab_widget)
-    
+        satir.addWidget(ikon_etiketi)
+
+        yazi_kutusu = QVBoxLayout()
+        yazi_kutusu.setSpacing(2)
+
+        ust = QLabel(yazi)
+        ust.setStyleSheet(
+            f"color: {stil.YAZI_RENGI}; font-size: 14px; font-weight: 600; "
+            f"background: transparent;")
+        yazi_kutusu.addWidget(ust)
+
+        alt = QLabel(aciklama)
+        alt.setStyleSheet(
+            f"color: {stil.SOLUK_YAZI}; font-size: 12px; background: transparent;")
+        yazi_kutusu.addWidget(alt)
+
+        satir.addLayout(yazi_kutusu)
+        satir.addStretch()
+
+        ok = QLabel("›")
+        ok.setStyleSheet(
+            f"color: {stil.SOLUK_YAZI}; font-size: 20px; background: transparent;")
+        satir.addWidget(ok)
+
+        return btn
+
+    def event(self, olay):
+        # İşlem penceresi kapanınca ana menü tekrar öne gelir; bakiyeyi o anda
+        # veritabanından tazeleyerek eski değeri göstermesini engelliyoruz.
+        if olay.type() == QEvent.WindowActivate:
+            self.bakiye_yenile()
+        return super().event(olay)
+
+    def bakiye_yenile(self):
+        bakiye = database.bakiye_getir(self.kullanici_bilgileri[1])
+        if bakiye is None:
+            return
+        self.kullanici_bilgileri = self.kullanici_bilgileri[:5] + (bakiye,) + \
+            tuple(self.kullanici_bilgileri[6:])
+        self.bakiye_label.setText(f"₺{bakiye:,.2f}")
+
     def para_yatir_penceresi_ac(self):
         self.para_yatir = ParaYatirFormu(self.kullanici_bilgileri)
         self.para_yatir.show()
-    
+
     def para_cek_penceresi_ac(self):
         self.para_cek = ParaCekFormu(self.kullanici_bilgileri)
         self.para_cek.show()
-    
+
     def para_transfer_penceresi_ac(self):
         self.para_transfer = ParaTransferFormu(self.kullanici_bilgileri)
         self.para_transfer.show()
-    
+
     def islem_gecmisi_penceresi_ac(self):
         self.islem_gecmisi = IslemGecmisiFormu(self.kullanici_bilgileri)
         self.islem_gecmisi.show()
+
+
+def _golge(bulanik, saydamlik):
+    efekt = QGraphicsDropShadowEffect()
+    efekt.setBlurRadius(bulanik)
+    efekt.setColor(QColor(0, 0, 0, saydamlik))
+    efekt.setOffset(0, 6)
+    return efekt
