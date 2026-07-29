@@ -2,9 +2,11 @@
 __pycache__/
 *.py[cod]
 
-# PyInstaller ciktilari (exe 36 MB, depoya girmemeli)
+# PyInstaller ciktilari (exe ~36 MB, depoya girmemeli; Releases'ten dagitiliyor)
 build/
 dist/
+dist_klasor/
+*.spec
 
 # Yerel veritabani ve yedekleri
 *.db.yedek

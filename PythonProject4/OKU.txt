@@ -1,0 +1,40 @@
+BANKA SISTEMI
+=============
+
+Kurulum gerektirmez. Klasoru istediginiz yere cikarip
+"Banka Sistemi.exe" dosyasina cift tiklayin.
+
+
+WINDOWS UYARI VERIRSE
+---------------------
+
+Ilk acilista Windows "Bilgisayariniz korundu" / "Bilinmeyen yayinci"
+uyarisi verebilir. Bunun sebebi uygulamanin ucretli bir kod imzalama
+sertifikasiyla imzalanmamis olmasidir; uygulamada bir sorun oldugu
+anlamina gelmez.
+
+Devam etmek icin:  "Ek bilgi"  ->  "Yine de calistir"
+
+Uygulamanin kaynak kodu tamamen aciktir, inceleyebilirsiniz:
+https://github.com/OguzalpKocagoz/bank-application
+
+
+ILK GIRIS
+---------
+
+Yeni bir hesap olusturmak icin giris ekranindaki
+"Yeni Hesap Olustur" dugmesini kullanin.
+
+Yonetici girisi:
+  TC No : 11111111111
+  Sifre : admin123
+
+Not: Yonetici sifresini ilk girisin ardindan admin panelinden
+degistirmeniz onerilir.
+
+
+VERILER
+-------
+
+Kayitlar exe'nin yanindaki "banka.db" dosyasinda tutulur.
+Uygulamayi tasirken bu dosyayi da beraberinde tasiyin.
